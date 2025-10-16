@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import type { Settings } from '../types';
 import { Type } from "@google/genai";
 import FindReplace from './FindReplace';

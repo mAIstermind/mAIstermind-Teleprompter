@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import Editor from './components/Editor';
 import Teleprompter from './components/Teleprompter';
 import useLocalStorage from './hooks/useLocalStorage';
