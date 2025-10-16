@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
@@ -17,9 +17,8 @@ root.render(
 // Register the service worker for PWA functionality
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // The path needs to be absolute from the root of the domain,
-    // including the base path of the GitHub Pages site.
-    navigator.serviceWorker.register('/mAIstermind-Teleprompter/service-worker.js')
+    // The path needs to be absolute from the root of the domain.
+    navigator.serviceWorker.register('/service-worker.js')
       .then(registration => {
         console.log('ServiceWorker registration successful with scope: ', registration.scope);
       })

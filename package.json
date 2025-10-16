@@ -1,6 +1,5 @@
 {
   "name": "maistermind-teleprompter",
-  "homepage": "https://mAlstermind.github.io/mAIstermind-Teleprompter",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,9 +9,7 @@
     "dev:server": "node server.js",
     "build": "vite build && cp service-worker.js dist/",
     "preview": "vite preview",
-    "start": "node server.js",
-    "predeploy": "npm run build",
-    "deploy": "npx gh-pages -d dist"
+    "start": "node server.js"
   },
   "dependencies": {
     "@google/genai": "^0.14.0",

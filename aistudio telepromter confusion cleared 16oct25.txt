@@ -1,0 +1,18 @@
+echo "API_KEY=AIzaSyBShCSF8KY5XkqLj6M2GqKwLoYTodNQOn0" > .env
+
+git remote add origin https://github.com/mAIstermind/mAIstermind-Teleprompter.git
+
+https://github.com/mAIstermind/mAIstermind-Teleprompter.git
+https://maistermind-teleprompter.onrender.com/
+
+API_KEY="AIzaSyBShCSF8KY5XkqLj6M2GqKwLoYTodNQOn0" npm run deploy
+API_KEY="AIzaSyBShCSF8KY5XkqLj6M2GqKwLoYTodNQOn0" npm run deploy
+
+====
+
+I am now 100% clear on your goal:
+Frontend Code: Lives on GitHub.
+Live Frontend App: Served to users from GitHub Pages.
+Secret API Key: Stored safely on Render.
+The Connection: The GitHub Pages app will talk to a secure service on Render, which will then talk to Google. Your key will never be public.
+This is a standard and secure architecture. The way to achieve it is by creating a small proxy server that runs on Render. I will provide the exact code to do this. We will modify your React project to talk to this new server instead of directly to Google.
