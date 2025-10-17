@@ -1,4 +1,5 @@
-import React from 'react';
+// FIX: Changed React import style to resolve JSX typing issues.
+import * as React from 'react';
 import Editor from './components/Editor';
 import Teleprompter from './components/Teleprompter';
 import useLocalStorage from './hooks/useLocalStorage';

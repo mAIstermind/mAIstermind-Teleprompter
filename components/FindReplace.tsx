@@ -1,4 +1,5 @@
-import React from 'react';
+// FIX: Changed React import style to resolve JSX typing issues.
+import * as React from 'react';
 
 interface FindReplaceProps {
   onFind: (term: string) => number;

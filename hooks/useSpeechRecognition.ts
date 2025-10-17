@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;

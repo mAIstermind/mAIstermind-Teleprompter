@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 function useLocalStorage<T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = React.useState<T>(() => {
