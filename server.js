@@ -9,9 +9,9 @@ const port = process.env.PORT || 3001;
 
 // --- Middleware ---
 const allowedOrigins = [
-  'https://mAIstermind.github.io', // Production
-  'http://localhost:5173',          // Vite dev default
-  'http://127.0.0.1:5173',         // Vite dev default
+  'https://maistermind.com',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
 ];
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());

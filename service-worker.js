@@ -1,9 +1,8 @@
-const GH_PAGES_PREFIX = '/mAIstermind-Teleprompter';
 const CACHE_NAME = 'maistermind-teleprompter-pwa-v1';
 const urlsToCache = [
-  `${GH_PAGES_PREFIX}/`,
-  `${GH_PAGES_PREFIX}/index.html`,
-  `${GH_PAGES_PREFIX}/manifest.json`,
+  './',
+  './index.html',
+  './manifest.json',
   'https://cdn.tailwindcss.com'
 ];
 
