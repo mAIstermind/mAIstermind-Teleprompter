@@ -23,6 +23,13 @@ app.use(cors({
     }
   }
 }));
+
+// Set Content-Security-Policy globally to allow iframe embedding
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://maistermind.com");
+  next();
+});
+
 app.use(express.json());
 
 // --- API Key and AI Initialization ---
@@ -34,6 +41,9 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 // --- API Route ---
 app.post('/api/generate', async (req, res) => {
+  // Disable server timeout for this potentially long-running request
+  req.setTimeout(0);
+  
   if (!ai) {
     return res.status(503).json({ error: 'The server is not configured with an API key. Service unavailable.' });
   }
@@ -47,7 +57,14 @@ app.post('/api/generate', async (req, res) => {
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
       const response = await ai.models.generateContent({ model, contents, config });
-      return res.json({ text: response.text });
+      
+      const text = response?.text;
+      if (typeof text === 'string') {
+        return res.json({ text });
+      } else {
+        console.error("Gemini response did not contain valid text. Full response:", JSON.stringify(response, null, 2));
+        return res.status(500).json({ error: "AI response was empty or in an unexpected format. This could be due to content safety filters." });
+      }
     } catch (error) {
       console.error(`Error calling Gemini API (Attempt ${i + 1}/${MAX_RETRIES}):`, error.message);
       if (i === MAX_RETRIES - 1) {
@@ -70,8 +87,6 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // For any other request that doesn't match an API route or a static file,
 // send back the main index.html file. This is the catch-all for SPAs.
 app.get('*', (req, res) => {
-  // Allow the app to be embedded in an iframe on your specific domain
-  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://maistermind.com");
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
