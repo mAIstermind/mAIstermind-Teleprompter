@@ -1,6 +1,6 @@
 # mAIstermind Teleprompter
 
-**Live Application Link:** [https://maistermind.github.io/mAIstermind-Teleprompter/](https://maistermind.github.io/mAIstermind-Teleprompter/)
+**Live Application Link:** [https://maistermind-teleprompter.onrender.com/](https://maistermind-teleprompter.onrender.com/)
 
 ## Description
 
@@ -43,13 +43,6 @@
 ## Browser Compatibility
 For the best experience, especially for voice control and camera features, please use a modern browser like **Google Chrome** or Microsoft Edge.
 
-## Deployment to GitHub Pages
+## Deployment to Render
 
-This project is now configured for your GitHub Pages site. To deploy any new changes:
-
-1.  Commit and push your changes to the `main` branch.
-2.  Run the following command in your terminal:
-    ```bash
-    npm run deploy
-    ```
-This will build the application and automatically push the required files to the `gh-pages` branch, updating your live site.
+This project is configured for deployment on Render. Pushing changes to the `main` branch on GitHub will automatically trigger a new deployment.

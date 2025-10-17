@@ -331,7 +331,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
   
   return (
-    <div className="bg-gradient-to-b from-slate-900 to-blue-900 min-h-screen">
+    <div className="bg-slate-900 min-h-screen">
       {renderModal()}
       <main className="container mx-auto p-4 flex flex-col space-y-4 min-h-screen">
         <header className="text-center my-4">

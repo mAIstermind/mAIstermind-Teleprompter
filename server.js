@@ -70,6 +70,8 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // For any other request that doesn't match an API route or a static file,
 // send back the main index.html file. This is the catch-all for SPAs.
 app.get('*', (req, res) => {
+  // Allow the app to be embedded in an iframe on your specific domain
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://maistermind.com");
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
