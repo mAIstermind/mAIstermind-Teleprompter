@@ -1,6 +1,5 @@
 {
   "name": "maistermind-teleprompter",
-  "homepage": "https://mAIstermind.github.io/mAIstermind-Teleprompter",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -30,6 +29,6 @@
     "concurrently": "^8.2.2",
     "gh-pages": "^6.1.1",
     "typescript": "^5.5.3",
-    "vite": "^7.1.10"
+    "vite": "^5.3.3"
   }
 }
