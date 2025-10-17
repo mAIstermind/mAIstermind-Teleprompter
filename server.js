@@ -8,8 +8,12 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- Middleware ---
-// Restrict requests to only come from your frontend's domain for security.
-app.use(cors({ origin: 'https://maistermind.github.io' })); 
+const allowedOrigins = [
+  'https://mAIstermind.github.io', // Production
+  'http://localhost:5173',          // Vite dev default
+  'http://127.0.0.1:5173',         // Vite dev default
+];
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 // --- API Key and AI Initialization ---

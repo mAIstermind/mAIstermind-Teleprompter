@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-function useLocalStorage<T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = React.useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -11,15 +11,17 @@ function useLocalStorage<T,>(key: string, initialValue: T): [T, React.Dispatch<R
     }
   });
 
-  const setValue: React.Dispatch<React.SetStateAction<T>> = (value) => {
+  const setValue: React.Dispatch<React.SetStateAction<T>> = React.useCallback((value) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      setStoredValue(prevStoredValue => {
+        const valueToStore = value instanceof Function ? value(prevStoredValue) : value;
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        return valueToStore;
+      });
     } catch (error) {
       console.log(error);
     }
-  };
+  }, [key]);
 
   React.useEffect(() => {
      const handleStorageChange = (e: StorageEvent) => {

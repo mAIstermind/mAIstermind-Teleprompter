@@ -1,4 +1,4 @@
-const RENDER_BACKEND_URL = 'https://maistermind-teleprompter.onrender.com';
+const RENDER_BACKEND_URL = 'https://mAIstermind-Teleprompter.onrender.com';
 
 export async function callApi(prompt: string, config?: any) {
   const body = {

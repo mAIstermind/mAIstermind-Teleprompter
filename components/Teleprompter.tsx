@@ -63,6 +63,18 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
   const hideControlsTimeout = React.useRef<number | null>(null);
   const speedIndicatorTimeout = React.useRef<number | null>(null);
 
+  const startCountdown = React.useCallback((from: number) => {
+    setCountdown(from);
+  }, []);
+
+  const resetScroll = React.useCallback(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    setSessionTime(0);
+    setIsSessionActive(false);
+    setIsPlaying(false);
+    startCountdown(3);
+  }, [startCountdown]);
+
   const handleVoiceCommand = React.useCallback((command: string) => {
     switch (command) {
       case 'play':
@@ -96,9 +108,19 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
         showToast('Restarting');
         break;
     }
-  }, [showToast]);
+  }, [showToast, resetScroll]);
 
   const { isListening, startListening, stopListening, fullTranscript, resetTranscript } = useSpeechRecognition(handleVoiceCommand);
+  
+  React.useEffect(() => {
+    if (resetScroll) { // Ensure resetScroll is available before updating dependency
+        resetScroll();
+    }
+    if (isListening && fullTranscript) {
+        resetTranscript();
+    }
+  }, [isListening, resetScroll, resetTranscript]);
+
 
   const togglePlayPause = () => setIsPlaying(p => !p);
 
@@ -106,15 +128,6 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
     const clampedSpeed = Math.max(1, Math.min(newSpeed, 10));
     setScrollSpeed(clampedSpeed);
     setSpeedIndicator(clampedSpeed);
-  };
-  
-  const resetScroll = () => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
-    setSessionTime(0);
-    setIsSessionActive(false);
-    setIsPlaying(false);
-    resetTranscript();
-    startCountdown(3);
   };
   
   const displayControls = React.useCallback(() => {
@@ -126,6 +139,19 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
   React.useEffect(() => {
     displayControls();
   }, [displayControls]);
+  
+  React.useEffect(() => {
+    if (countdown === null) return;
+    if (countdown > 0) {
+      const timerId = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timerId);
+    } else {
+      setIsPlaying(true);
+      setCountdown(null);
+    }
+  }, [countdown]);
 
   React.useEffect(() => {
     if (speedIndicatorTimeout.current) clearTimeout(speedIndicatorTimeout.current);
@@ -178,23 +204,8 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
       mediaStreamRef.current?.getTracks().forEach(track => track.stop());
       if (document.fullscreenElement) document.exitFullscreen();
     };
-  }, [settings.showCamera, onExit]);
+  }, [settings.showCamera, onExit, startCountdown]);
   
-  const startCountdown = (from: number) => {
-    setCountdown(from);
-    if (from > 0) {
-      const timer = setInterval(() => {
-        setCountdown(c => (c !== null && c > 1) ? c - 1 : null);
-        if (from === 1) {
-          clearInterval(timer);
-          setIsPlaying(true);
-        }
-        from--;
-      }, 1000);
-    } else {
-      setIsPlaying(true);
-    }
-  };
 
   const handleRecordToggle = () => {
     if (recordingStatus === 'recording') {
