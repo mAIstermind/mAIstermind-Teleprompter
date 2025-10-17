@@ -8,7 +8,8 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- Middleware ---
-app.use(cors()); 
+// Restrict requests to only come from your frontend's domain for security.
+app.use(cors({ origin: 'https://maistermind.github.io' })); 
 app.use(express.json());
 
 // --- API Key and AI Initialization ---
@@ -31,12 +32,22 @@ app.post('/api/generate', async (req, res) => {
     return res.status(400).json({ error: 'Request body must include "model" and "contents".' });
   }
 
-  try {
-    const response = await ai.models.generateContent({ model, contents, config });
-    res.json({ text: response.text });
-  } catch (error) {
-    console.error('Error calling Gemini API:', error.message);
-    res.status(500).json({ error: 'An error occurred while communicating with the AI service.' });
+  const MAX_RETRIES = 3;
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    try {
+      const response = await ai.models.generateContent({ model, contents, config });
+      // Success, send the response and stop retrying.
+      return res.json({ text: response.text });
+    } catch (error) {
+      console.error(`Error calling Gemini API (Attempt ${i + 1}/${MAX_RETRIES}):`, error.message);
+      if (i === MAX_RETRIES - 1) {
+        // Last attempt failed, send an error response.
+        return res.status(500).json({ error: `AI service error after ${MAX_RETRIES} attempts: ${error.message}` });
+      }
+      // Wait before retrying, with exponential backoff.
+      const delay = Math.pow(2, i) * 200; // e.g., 200ms, 400ms, 800ms
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
 });
 

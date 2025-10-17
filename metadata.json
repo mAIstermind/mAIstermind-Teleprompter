@@ -1,0 +1,8 @@
+{
+  "name": "mAIstermind Teleprompter",
+  "description": "A professional, mobile-optimized teleprompter progressive web app with responsive design, voice control, and extensive customization options for content creators and public speakers.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

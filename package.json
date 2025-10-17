@@ -1,5 +1,6 @@
 {
   "name": "maistermind-teleprompter",
+  "homepage": "https://mAIstermind.github.io/mAIstermind-Teleprompter",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +8,9 @@
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "vite",
     "dev:server": "node server.js",
-    "build": "vite build && cp service-worker.js dist/",
+    "build": "npx vite build && cp service-worker.js dist/",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "preview": "vite preview",
     "start": "node server.js"
   },

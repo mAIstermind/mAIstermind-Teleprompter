@@ -55,20 +55,21 @@ const useSpeechRecognition = (onCommand: (command: string) => void): SpeechRecog
   const [isListening, setIsListening] = React.useState(false);
   const [fullTranscript, setFullTranscript] = React.useState('');
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
+  const manualStopRef = React.useRef(false);
 
   const resetTranscript = () => setFullTranscript('');
 
   const startListening = React.useCallback(() => {
     if (recognitionRef.current && !isListening) {
+      manualStopRef.current = false;
       try { recognitionRef.current.start(); } catch (e) { console.error(e); }
     }
   }, [isListening]);
 
   const stopListening = React.useCallback(() => {
     if (recognitionRef.current && isListening) {
-      recognitionRef.current.onend = null; // Prevent auto-restart
+      manualStopRef.current = true;
       recognitionRef.current.stop();
-      setIsListening(false);
     }
   }, [isListening]);
 
@@ -85,8 +86,9 @@ const useSpeechRecognition = (onCommand: (command: string) => void): SpeechRecog
     recognition.lang = 'en-US';
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => {
+        setIsListening(false);
         // Only restart if it wasn't a manual stop
-        if (recognitionRef.current && recognitionRef.current.onend !== null) {
+        if (!manualStopRef.current) {
             startListening();
         }
     };
@@ -110,7 +112,10 @@ const useSpeechRecognition = (onCommand: (command: string) => void): SpeechRecog
       }
     };
     recognitionRef.current = recognition;
-    return () => { recognition.stop(); };
+    return () => { 
+        manualStopRef.current = true;
+        recognition.stop(); 
+    };
   }, [onCommand, startListening]);
 
   return { isListening, startListening, stopListening, fullTranscript, resetTranscript };

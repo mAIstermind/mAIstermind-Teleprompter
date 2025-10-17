@@ -7,14 +7,15 @@ interface ToastState {
 
 const useToast = (duration: number = 2000) => {
   const [toast, setToast] = React.useState<ToastState>({ message: '', isVisible: false });
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // FIX: Replaced NodeJS.Timeout with number for browser compatibility, as setTimeout returns a number in browser environments.
+  const timeoutRef = React.useRef<number | null>(null);
 
   const showToast = React.useCallback((message: string) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     setToast({ message, isVisible: true });
-    timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = window.setTimeout(() => {
       setToast({ message: '', isVisible: false });
       timeoutRef.current = null;
     }, duration);
