@@ -1,5 +1,6 @@
-// FIX: Changed React import style to resolve JSX typing issues.
-import * as React from 'react';
+
+// FIX: Changed React import to the default import style to resolve widespread JSX typing errors.
+import React from 'react';
 
 interface ToastProps {
   message: string;

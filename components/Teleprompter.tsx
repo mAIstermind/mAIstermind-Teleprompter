@@ -1,5 +1,6 @@
-// FIX: Changed React import style to resolve JSX typing issues.
-import * as React from 'react';
+
+// FIX: Changed React import to the default import style to resolve widespread JSX typing errors.
+import React from 'react';
 import type { Settings } from '../types';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import useToast from '../hooks/useToast';
@@ -111,16 +112,6 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
   }, [showToast, resetScroll]);
 
   const { isListening, startListening, stopListening, fullTranscript, resetTranscript } = useSpeechRecognition(handleVoiceCommand);
-  
-  React.useEffect(() => {
-    if (resetScroll) { // Ensure resetScroll is available before updating dependency
-        resetScroll();
-    }
-    if (isListening && fullTranscript) {
-        resetTranscript();
-    }
-  }, [isListening, resetScroll, resetTranscript]);
-
 
   const togglePlayPause = () => setIsPlaying(p => !p);
 
@@ -194,7 +185,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
       } catch (err) { console.error(err); }
     };
     enterFullscreen();
-    startCountdown(3);
+    resetScroll();
 
     const onFullscreenChange = () => { if (!document.fullscreenElement) onExit(); };
     document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -204,7 +195,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
       mediaStreamRef.current?.getTracks().forEach(track => track.stop());
       if (document.fullscreenElement) document.exitFullscreen();
     };
-  }, [settings.showCamera, onExit, startCountdown]);
+  }, [settings.showCamera, onExit, resetScroll]);
   
 
   const handleRecordToggle = () => {

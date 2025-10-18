@@ -1,4 +1,6 @@
-import * as React from 'react';
+
+// FIX: Changed React import to the default import style for consistency.
+import React from 'react';
 
 interface ToastState {
   message: string;

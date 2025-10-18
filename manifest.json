@@ -3,14 +3,14 @@
   "name": "mAIstermind Teleprompter",
   "icons": [
     {
-      "src": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      "src": "data:image/svg+xml,%3Csvg%20width%3D%22192%22%20height%3D%22192%22%20viewBox%3D%220%200%20100%20100%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%230f172a%22%2F%3E%3Cpath%20d%3D%22M20%2080V20h15l15%2030%2015-30h15v60h-15V40l-15%2030-15-30v40H20z%22%20fill%3D%22%2306b6d4%22%2F%3E%3C%2Fsvg%3E",
       "sizes": "192x192",
-      "type": "image/gif"
+      "type": "image/svg+xml"
     },
     {
-      "src": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      "src": "data:image/svg+xml,%3Csvg%20width%3D%22512%22%20height%3D%22512%22%20viewBox%3D%220%200%20100%20100%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%230f172a%22%2F%3E%3Cpath%20d%3D%22M20%2080V20h15l15%2030%2015-30h15v60h-15V40l-15%2030-15-30v40H20z%22%20fill%3D%22%2306b6d4%22%2F%3E%3C%2Fsvg%3E",
       "sizes": "512x512",
-      "type": "image/gif"
+      "type": "image/svg+xml"
     }
   ],
   "start_url": ".",

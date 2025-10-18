@@ -1,4 +1,6 @@
-import * as React from 'react';
+
+// FIX: Changed React import to the default import style for consistency.
+import React from 'react';
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [storedValue, setStoredValue] = React.useState<T>(() => {
