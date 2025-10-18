@@ -67,15 +67,11 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
 
   const handleGenerateScript = async (promptText: string) => {
-    if (!promptText || !promptText.trim()) {
-      generatePromptRef.current?.focus();
-      return;
-    }
     if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) {
       return;
     }
+    // FIX: Modal is closed by the button's onClick handler before this is called.
     setScript('');
-    closeModal(); // Close modal IMMEDIATELY before API call
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
     handleApiCallWrapper(
       fullPrompt,
@@ -98,32 +94,29 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
   
   const executePolish = (customInstructions: string) => {
+    // FIX: Modal is closed by the button's onClick handler before this is called.
     const basePrompt = `Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.`;
     const fullPrompt = customInstructions.trim()
       ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
       : `${basePrompt}\n---\n${script}\n---`;
-    
-    closeModal(); // MUST close input modal first!
     handleSideBySideAction(fullPrompt, 'polish');
   };
 
   const executeCoach = (customInstructions: string) => {
+    // FIX: Modal is closed by the button's onClick handler before this is called.
     const basePrompt = `Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).`;
     const fullPrompt = customInstructions.trim()
       ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
       : `${basePrompt}\n---\n${script}\n---`;
-    
-    closeModal(); // MUST close input modal first!
     handleSideBySideAction(fullPrompt, 'coach');
   };
 
   const executeSummarize = (customInstructions: string) => {
+    // FIX: Modal is closed by the button's onClick handler before this is called.
     const basePrompt = `Summarize the following script into key talking points suitable for a social media post or video description.`;
     const fullPrompt = customInstructions.trim()
       ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
       : `${basePrompt}\n---\n${script}\n---`;
-  
-    closeModal(); // MUST close input modal first!
     handleSideBySideAction(fullPrompt, 'summarize');
   };
 
@@ -141,10 +134,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       },
       () => { // onComplete
         try {
-          const parsed = JSON.parse(fullText);
+          // Clean the text before parsing
+          const cleanText = fullText.replace(/```json\n?|```/g, '').trim();
+          const parsed = JSON.parse(cleanText);
           setModalState({ type: 'tone', step: 'result', data: parsed });
         } catch (err: any) {
-          setModalState({ type: 'error', data: `Failed to parse tone analysis: ${err.message}` });
+          setModalState({ type: 'error', data: `Failed to parse tone analysis. Raw response: ${fullText}` });
         }
       }
     );
@@ -185,7 +180,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
                 type="text"
                 placeholder="e.g., A 5-minute video about the benefits of meditation"
                 className="w-full bg-gray-700 rounded-md p-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                onKeyDown={(e) => { if (e.key === 'Enter' && generatePromptRef.current?.value) handleGenerateScript(generatePromptRef.current.value); }}
+                onKeyDown={(e) => { 
+                  if (e.key === 'Enter' && generatePromptRef.current?.value.trim()) {
+                    closeModal();
+                    handleGenerateScript(generatePromptRef.current.value);
+                  } 
+                }}
             />
         );
         footer = (
@@ -193,8 +193,11 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
                 <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
                 <button
                     onClick={() => {
-                      if (generatePromptRef.current && generatePromptRef.current.value) {
+                      if (generatePromptRef.current && generatePromptRef.current.value.trim()) {
+                        closeModal(); // FIX: Close modal immediately before calling the handler
                         handleGenerateScript(generatePromptRef.current.value);
+                      } else {
+                        generatePromptRef.current?.focus();
                       }
                     }}
                     className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold"
@@ -234,12 +237,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
               ref={customInstructionsRef}
               placeholder={`Optional instructions. ${placeholderText}`}
               className="w-full h-24 bg-gray-700 rounded-md p-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); executor(customInstructionsRef.current?.value || ''); } }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeModal(); executor(customInstructionsRef.current?.value || ''); } }}
             />
           );
           footer = <>
             <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
-            <button onClick={() => executor(customInstructionsRef.current?.value || '')} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">{actionText}</button>
+            <button onClick={() => { closeModal(); executor(customInstructionsRef.current?.value || ''); }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">{actionText}</button>
           </>;
         }
         break;
@@ -256,7 +259,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
         
     case 'error':
         title = "An Error Occurred";
-        content = <p className="text-red-400 bg-red-900/50 p-3 rounded-md">{modalState.data}</p>;
+        content = <p className="text-red-400 bg-red-900/50 p-3 rounded-md break-words">{String(modalState.data)}</p>;
         footer = <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Close</button>;
         break;
     }
@@ -302,11 +305,18 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       
       {isFindReplaceVisible && <FindReplace
         onFind={(term) => {
+          if (!term) return 0;
           const matches = script.match(new RegExp(term, 'gi'));
           return matches ? matches.length : 0;
         }}
-        onReplace={(find, replace) => setScript(s => s.replace(find, replace))}
-        onReplaceAll={(find, replace) => setScript(s => s.replace(new RegExp(find, 'g'), replace))}
+        onReplace={(find, replace) => {
+          const regex = new RegExp(find, 'i'); // Case-insensitive single replace
+          setScript(s => s.replace(regex, replace));
+        }}
+        onReplaceAll={(find, replace) => {
+          const regex = new RegExp(find, 'gi'); // Case-insensitive global replace
+          setScript(s => s.replace(regex, replace));
+        }}
         onClose={() => setIsFindReplaceVisible(false)}
       />}
 

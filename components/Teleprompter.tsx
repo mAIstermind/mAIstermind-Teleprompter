@@ -26,7 +26,7 @@ const StopIcon: React.FC<{className: string}> = ({className}) => <svg className=
 const DownloadIcon: React.FC<{className: string}> = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>;
 // Corrected SVG attributes from kebab-case to camelCase for JSX compatibility.
 // FIX: Corrected SVG attributes from kebab-case to camelCase for JSX compatibility (e.g. stroke-linecap -> strokeLinecap).
-const SearchIcon: React.FC<{className: string}> = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+const SearchIcon: React.FC<{className: string}> = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>;
 const SpinnerIcon: React.FC<{ className: string }> = ({ className }) => <svg className={`${className} animate-spin`} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>;
 // FIX: Corrected SVG attributes from kebab-case to camelCase for JSX compatibility (e.g. stroke-linecap -> strokeLinecap).
 const CoachIcon: React.FC<{className: string}> = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" /></svg>;
@@ -155,11 +155,14 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
     let animationFrameId: number;
     const scrollContent = () => {
       if (isPlaying && scrollRef.current) {
-        scrollRef.current.scrollTop += scrollSpeed / 10;
+        // FIX: Increased scroll multiplier to ensure smooth scrolling even at low speeds.
+        scrollRef.current.scrollTop += scrollSpeed / 4;
         
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        const currentProgress = (scrollTop / (scrollHeight - clientHeight)) * 100;
-        setProgress(Math.min(100, currentProgress));
+        if (scrollHeight > clientHeight) { // Avoid division by zero
+          const currentProgress = (scrollTop / (scrollHeight - clientHeight)) * 100;
+          setProgress(Math.min(100, currentProgress));
+        }
 
         animationFrameId = requestAnimationFrame(scrollContent);
       }
@@ -202,7 +205,8 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
     if (recordingStatus === 'recording') {
       mediaRecorderRef.current?.stop();
       stopListening();
-    } else if (mediaStreamRef.current) {
+      setRecordingStatus('processing'); // Set to processing while blob is created
+    } else if (mediaStreamRef.current) { // Covers 'idle' and 'finished' states
       recordedChunks.current = [];
       setVideoURL(null);
       resetTranscript();
@@ -267,7 +271,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
         </div>
       )}
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-full md:w-1/2 border-y-2 border-red-500/50 z-20 pointer-events-none" />
+      {settings.showGuides && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-full md:w-1/2 border-y-2 border-red-500/50 z-20 pointer-events-none" />}
       
       <div ref={scrollRef} className="w-full h-full overflow-hidden z-10">
         <div style={{ fontSize: `${settings.fontSize}vmin`, lineHeight: settings.lineHeight, fontFamily: settings.fontFamily, color: settings.fontColor, textAlign: settings.textAlign }} className={`w-11/12 max-w-5xl mx-auto py-[50vh] ${settings.isMirrored ? 'scale-x-[-1]' : ''}`}>
@@ -283,7 +287,18 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
           <button aria-label={isPlaying ? "Pause" : "Play"} onClick={togglePlayPause}>{isPlaying ? <PauseIcon className="w-10 h-10"/> : <PlayIcon className="w-10 h-10"/>}</button>
           <button aria-label="Increase speed" onClick={() => changeSpeed(scrollSpeed + 1)}><SpeedUpIcon className="w-8 h-8"/></button>
           <button aria-label="Restart" onClick={resetScroll}><RestartIcon className="w-8 h-8"/></button>
-          {settings.showCamera && <button aria-label={recordingStatus === 'recording' ? "Stop recording" : "Start recording"} onClick={handleRecordToggle} className={recordingStatus === 'recording' ? 'text-red-500' : ''}>{recordingStatus === 'recording' ? <StopIcon className="w-8 h-8"/> : <RecordIcon className="w-8 h-8"/>}</button>}
+          {settings.showCamera && (
+            <button
+              aria-label="Record"
+              onClick={handleRecordToggle}
+              disabled={recordingStatus === 'processing'}
+              className={`transition-colors ${recordingStatus === 'recording' ? 'text-red-500' : ''} ${recordingStatus === 'processing' ? 'text-gray-500' : ''}`}
+            >
+              {recordingStatus === 'recording' && <StopIcon className="w-8 h-8" />}
+              {recordingStatus === 'processing' && <SpinnerIcon className="w-8 h-8" />}
+              {(recordingStatus === 'idle' || recordingStatus === 'finished') && <RecordIcon className="w-8 h-8" />}
+            </button>
+          )}
           {videoURL && <a aria-label="Download recording" href={videoURL} download="recording.webm"><DownloadIcon className="w-8 h-8"/></a>}
           {videoURL && <button aria-label="Analyze delivery" onClick={handleAnalyzeDelivery}><CoachIcon className="w-8 h-8"/></button>}
           <button aria-label={isListening ? "Stop voice commands" : "Start voice commands"} onClick={isListening ? stopListening : startListening} className={isListening ? 'text-red-500' : ''}>
@@ -298,7 +313,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
           <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] flex flex-col text-white">
             <header className="flex justify-between items-center pb-2 border-b border-gray-700"><h2 className="text-xl font-bold">AI Pitch Analysis</h2><button onClick={() => setIsAnalysisModalOpen(false)}><CloseIcon className="w-6 h-6"/></button></header>
             <div className="py-4 my-4 overflow-y-auto">
-              {isAnalyzing ? <SpinnerIcon className="w-10 h-10 mx-auto text-cyan-400"/> : analysisError ? <p className="text-red-400">{analysisError}</p> : <div className="text-gray-300 space-y-4">{analysisResult.split('\n').map((p, i) => <p key={i}>{p}</p>)}</div>}
+              {isAnalyzing ? <SpinnerIcon className="w-10 h-10 mx-auto text-cyan-400"/> : analysisError ? <p className="text-red-400">{analysisError}</p> : <div className="text-gray-300 space-y-4 whitespace-pre-wrap">{analysisResult}</div>}
             </div>
           </div>
         </div>
