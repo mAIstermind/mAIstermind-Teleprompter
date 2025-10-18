@@ -173,15 +173,17 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       return;
     }
     
-    setScript('');
-    closeModal(); // Close modal BEFORE starting processing
-    
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
+    
+    // The modal will now show a processing state instead of closing.
+    // We clear the script before the call.
+    setScript('');
     
     handleApiCallWrapper(
       fullPrompt, 
       {}, 
-      (chunk) => setScript(prev => prev + chunk)
+      (chunk) => setScript(prev => prev + chunk),
+      closeModal // Close the modal only when generation is complete.
     );
   };
 
@@ -219,24 +221,18 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   const executePolish = (customInstructions: string) => {
     const basePrompt = `Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.`;
     const fullPrompt = `${basePrompt}${customInstructions.trim() ? `\n\nAdditional instructions: ${customInstructions}` : ''}\n---\n${script}\n---`;
-    
-    closeModal();
     handleSideBySideAction(fullPrompt, 'polish');
   };
 
   const executeCoach = (customInstructions: string) => {
     const basePrompt = `Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).`;
     const fullPrompt = `${basePrompt}${customInstructions.trim() ? `\n\nAdditional instructions: ${customInstructions}` : ''}\n---\n${script}\n---`;
-    
-    closeModal();
     handleSideBySideAction(fullPrompt, 'coach');
   };
 
   const executeSummarize = (customInstructions: string) => {
     const basePrompt = `Summarize the following script into key talking points suitable for a social media post or video description.`;
     const fullPrompt = `${basePrompt}${customInstructions.trim() ? `\n\nAdditional instructions: ${customInstructions}` : ''}\n---\n${script}\n---`;
-    
-    closeModal();
     handleSideBySideAction(fullPrompt, 'summarize');
   };
 
