@@ -115,30 +115,6 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       setToolbarPosition(null);
     }
   };
-
-  const handleInlineAIAction = async (action: 'rephrase' | 'shorten' | 'expand') => {
-    if (!selection) return;
-
-    const prompts = {
-      rephrase: `Rephrase the following text: "${selection.text}"`,
-      shorten: `Make the following text more concise: "${selection.text}"`,
-      expand: `Expand on the following text with more detail: "${selection.text}"`,
-    };
-    
-    setIsProcessing(true);
-    setToolbarPosition(null); // Hide toolbar during processing
-
-    const result = await handleApiCallWrapper(prompts[action]);
-    if (result) {
-      const newScript = script.substring(0, selection.start) + result + script.substring(selection.end);
-      setScript(newScript);
-    } else {
-       setError("AI action failed.");
-    }
-    
-    setIsProcessing(false);
-    setSelection(null);
-  };
   
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -164,63 +140,82 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleApiCallWrapper = async (prompt: string, config?: any) => {
-    setIsProcessing(true);
-    setError(null);
-    try {
-      const result = await callApi(prompt, config);
-      return result;
-    } catch (err: any) {
-      console.error("API call failed:", err);
-      setError(err.message || "An unknown error occurred.");
-      return null;
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleApiCallWrapper = async (
+    prompt: string,
+    config: any,
+    onChunk: (chunk: string) => void,
+    onComplete?: (fullText: string) => void,
+  ) => {
+      setIsProcessing(true);
+      setError(null);
+      try {
+          const fullText = await callApi(prompt, config, onChunk);
+          if (onComplete) onComplete(fullText);
+      } catch (err: any) {
+          console.error("API call failed:", err);
+          setError(err.message || "An unknown error occurred.");
+          setModal({ type: 'error' });
+      } finally {
+          setIsProcessing(false);
+      }
   };
 
   const handleGenerateScript = async (promptText: string) => {
     if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) return;
+    setScript('');
+    closeModal();
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
-    const result = await handleApiCallWrapper(fullPrompt);
-    if (result) {
-      setScript(result);
-      closeModal();
-    } else {
-      setModal({ type: 'error' });
-    }
+    handleApiCallWrapper(fullPrompt, {}, (chunk) => setScript(prev => prev + chunk));
   };
-  
+
   const handleSideBySideAction = async (prompt: string, modalType: string) => {
-    setModal({ type: modalType });
-    const result = await handleApiCallWrapper(prompt);
-    if (result) {
-      setModal({ type: modalType, data: result });
-    } else {
-      setModal({ type: 'error' });
-    }
+    setModal({ type: modalType, data: '' });
+    handleApiCallWrapper(prompt, {}, (chunk) => {
+        setModal(prev => ({ ...prev, data: (prev.data || '') + chunk }));
+    });
   };
 
   const handlePolishScript = () => handleSideBySideAction(`Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.:\n---\n${script}\n---`, 'polish');
   const handleCoachScript = () => handleSideBySideAction(`Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).:\n---\n${script}\n---`, 'coach');
   const handleSummarizeScript = () => handleSideBySideAction(`Summarize the following script into key talking points suitable for a social media post or video description.:\n---\n${script}\n---`, 'summarize');
-  const handleExpandScript = () => handleSideBySideAction(`Expand the following script, adding more detail, examples, or explanations where appropriate to make it more comprehensive.:\n---\n${script}\n---`, 'expand');
 
   const handleToneAnalysis = async () => {
     setModal({ type: 'tone' });
     const prompt = `Analyze the tone of the following script. Break the script into logical sections and identify the primary tone for each (e.g., "Informative," "Inspirational," "Humorous," "Urgent"). Provide the output as a JSON array of objects, where each object has a "section" (the text) and a "tone" (the analysis). Script:\n---\n${script}\n---`;
     const config = { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { section: { type: Type.STRING }, tone: { type: Type.STRING } } } } };
-    const result = await handleApiCallWrapper(prompt, config);
-    if (result) {
-      try {
-        setModal({ type: 'tone', data: JSON.parse(result) });
-      } catch (e) {
-        setError("AI returned an invalid format for tone analysis.");
-        setModal({ type: 'error' });
-      }
-    } else {
-      setModal({ type: 'error' });
-    }
+    
+    handleApiCallWrapper(prompt, config, () => {}, (fullText) => {
+        try {
+            setModal({ type: 'tone', data: JSON.parse(fullText) });
+        } catch (e) {
+            console.error("AI returned an invalid format for tone analysis.", e);
+            setError("AI returned an invalid format for tone analysis.");
+            setModal({ type: 'error' });
+        }
+    });
+  };
+  
+  const handleInlineAIAction = async (action: 'rephrase' | 'shorten' | 'expand') => {
+    if (!selection) return;
+
+    const prompts = {
+      rephrase: `Rephrase the following text: "${selection.text}"`,
+      shorten: `Make the following text more concise: "${selection.text}"`,
+      expand: `Expand on the following text with more detail: "${selection.text}"`,
+    };
+    
+    setToolbarPosition(null);
+
+    handleApiCallWrapper(prompts[action], {}, () => {}, (fullText) => {
+        if (fullText) {
+          const newScript = script.substring(0, selection.start) + fullText.trim() + script.substring(selection.end);
+          setScript(newScript);
+        } else {
+           setError("AI action failed.");
+           setModal({ type: 'error' });
+        }
+        setSelection(null);
+    });
   };
 
   const acceptChanges = (newScript: string) => {
@@ -279,7 +274,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
 
     let title = '', content: React.ReactNode = null, footer: React.ReactNode = null, widthClass = 'max-w-lg';
 
-    if (isProcessing) {
+    if (isProcessing && !modal.data) {
         title = 'AI Processing';
         content = <div className="flex flex-col items-center justify-center h-48 space-y-4"><SpinnerIcon className="w-10 h-10 text-cyan-400" /><p className="text-gray-400">Your AI assistant is working...</p></div>;
     } else if (modal.type === 'error' || error) {
@@ -290,9 +285,9 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       title = 'Generate Script with AI';
       content = <textarea id="ai-prompt-textarea" placeholder="e.g., A 2-minute YouTube video intro about the benefits of hydration." className="w-full h-32 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"></textarea>;
       footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => handleGenerateScript((document.getElementById('ai-prompt-textarea') as HTMLTextAreaElement).value)} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">Generate</button></>;
-    } else if (['polish', 'coach', 'summarize', 'expand'].includes(modal.type)) {
+    } else if (['polish', 'coach', 'summarize'].includes(modal.type)) {
       widthClass = 'max-w-5xl';
-      title = { polish: 'Polish Script', coach: 'Delivery Coach', summarize: 'Summarize Script', expand: 'Expand Script' }[modal.type]!;
+      title = { polish: 'Polish Script', coach: 'Delivery Coach', summarize: 'Summarize Script' }[modal.type]!;
       content = (
         <div className="grid md:grid-cols-2 gap-4 h-[60vh]">
             <div>
@@ -300,15 +295,17 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
                 <pre className="bg-gray-900 p-3 rounded-md whitespace-pre-wrap overflow-y-auto h-full font-mono text-sm border border-gray-700">{script}</pre>
             </div>
             <div>
-                <h3 className="font-bold mb-2 text-cyan-400">AI Suggestion</h3>
+                <h3 className="font-bold mb-2 text-cyan-400">AI Suggestion {isProcessing && <SpinnerIcon className="w-4 h-4 inline-block ml-2"/>}</h3>
                 <pre className="bg-cyan-900/20 p-3 rounded-md whitespace-pre-wrap overflow-y-auto h-full font-mono text-sm border border-cyan-700/50">{modal.data}</pre>
             </div>
         </div>
       );
-      footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => acceptChanges(modal.data)} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">Accept Changes</button></>;
-    } else if (modal.type === 'tone' && modal.data) {
+      footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => acceptChanges(modal.data)} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold" disabled={isProcessing}>Accept Changes</button></>;
+    } else if (modal.type === 'tone') {
       title = 'Tone Analysis';
-      content = <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">{(modal.data as ToneAnalysisItem[]).map((item, i) => <div key={i} className="p-3 bg-gray-900/50 rounded-md"><strong className="text-cyan-400 font-semibold">{item.tone}:</strong> <p className="text-gray-300 mt-1">{item.section}</p></div>)}</div>;
+      content = isProcessing ? 
+        <div className="flex flex-col items-center justify-center h-48 space-y-4"><SpinnerIcon className="w-10 h-10 text-cyan-400" /><p className="text-gray-400">Analyzing tone...</p></div>
+        : <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">{(modal.data as ToneAnalysisItem[]).map((item, i) => <div key={i} className="p-3 bg-gray-900/50 rounded-md"><strong className="text-cyan-400 font-semibold">{item.tone}:</strong> <p className="text-gray-300 mt-1">{item.section}</p></div>)}</div>;
       footer = <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Close</button>;
     } else if (modal.type === 'help') {
         title = 'Help & Controls';

@@ -41,9 +41,6 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 // --- API Route ---
 app.post('/api/generate', async (req, res) => {
-  // Disable server timeout for this potentially long-running request
-  req.setTimeout(0);
-  
   if (!ai) {
     return res.status(503).json({ error: 'The server is not configured with an API key. Service unavailable.' });
   }
@@ -52,26 +49,28 @@ app.post('/api/generate', async (req, res) => {
   if (!model || !contents) {
     return res.status(400).json({ error: 'Request body must include "model" and "contents".' });
   }
+  
+  try {
+    const stream = await ai.models.generateContentStream({ model, contents, config });
 
-  const MAX_RETRIES = 3;
-  for (let i = 0; i < MAX_RETRIES; i++) {
-    try {
-      const response = await ai.models.generateContent({ model, contents, config });
-      
-      const text = response?.text;
-      if (typeof text === 'string') {
-        return res.json({ text });
-      } else {
-        console.error("Gemini response did not contain valid text. Full response:", JSON.stringify(response, null, 2));
-        return res.status(500).json({ error: "AI response was empty or in an unexpected format. This could be due to content safety filters." });
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    for await (const chunk of stream) {
+      const text = chunk.text;
+      if (text) {
+        res.write(text);
       }
-    } catch (error) {
-      console.error(`Error calling Gemini API (Attempt ${i + 1}/${MAX_RETRIES}):`, error.message);
-      if (i === MAX_RETRIES - 1) {
-        return res.status(500).json({ error: `AI service error after ${MAX_RETRIES} attempts: ${error.message}` });
-      }
-      const delay = Math.pow(2, i) * 200;
-      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    res.end();
+  } catch (error) {
+    console.error('Error during Gemini stream:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: `AI service stream error: ${error.message}` });
+    } else {
+      // If headers are already sent, we can't send a new status code.
+      // We just end the response. The client will likely detect a truncated response.
+      res.end();
     }
   }
 });
