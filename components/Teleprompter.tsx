@@ -282,6 +282,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ script, settings, onExit })
           <button aria-label="Decrease speed" onClick={() => changeSpeed(scrollSpeed - 1)}><RewindIcon className="w-8 h-8"/></button>
           <button aria-label={isPlaying ? "Pause" : "Play"} onClick={togglePlayPause}>{isPlaying ? <PauseIcon className="w-10 h-10"/> : <PlayIcon className="w-10 h-10"/>}</button>
           <button aria-label="Increase speed" onClick={() => changeSpeed(scrollSpeed + 1)}><SpeedUpIcon className="w-8 h-8"/></button>
+          <button aria-label="Restart" onClick={resetScroll}><RestartIcon className="w-8 h-8"/></button>
           {settings.showCamera && <button aria-label={recordingStatus === 'recording' ? "Stop recording" : "Start recording"} onClick={handleRecordToggle} className={recordingStatus === 'recording' ? 'text-red-500' : ''}>{recordingStatus === 'recording' ? <StopIcon className="w-8 h-8"/> : <RecordIcon className="w-8 h-8"/>}</button>}
           {videoURL && <a aria-label="Download recording" href={videoURL} download="recording.webm"><DownloadIcon className="w-8 h-8"/></a>}
           {videoURL && <button aria-label="Analyze delivery" onClick={handleAnalyzeDelivery}><CoachIcon className="w-8 h-8"/></button>}

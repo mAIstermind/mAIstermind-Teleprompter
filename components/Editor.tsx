@@ -71,16 +71,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       generatePromptRef.current?.focus();
       return;
     }
-  
     if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) {
       return;
     }
-    
-    closeModal();
     setScript('');
-  
+    closeModal(); // Close modal IMMEDIATELY before API call
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
-    
     handleApiCallWrapper(
       fullPrompt,
       {},
@@ -103,31 +99,31 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   
   const executePolish = (customInstructions: string) => {
     const basePrompt = `Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.`;
-    const fullPrompt = basePrompt + (customInstructions.trim() 
-      ? `\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
-      : `\n---\n${script}\n---`);
+    const fullPrompt = customInstructions.trim()
+      ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
+      : `${basePrompt}\n---\n${script}\n---`;
     
-    closeModal();
+    closeModal(); // MUST close input modal first!
     handleSideBySideAction(fullPrompt, 'polish');
   };
 
   const executeCoach = (customInstructions: string) => {
     const basePrompt = `Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).`;
-    const fullPrompt = basePrompt + (customInstructions.trim()
-      ? `\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
-      : `\n---\n${script}\n---`);
+    const fullPrompt = customInstructions.trim()
+      ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
+      : `${basePrompt}\n---\n${script}\n---`;
     
-    closeModal();
+    closeModal(); // MUST close input modal first!
     handleSideBySideAction(fullPrompt, 'coach');
   };
 
   const executeSummarize = (customInstructions: string) => {
     const basePrompt = `Summarize the following script into key talking points suitable for a social media post or video description.`;
-    const fullPrompt = basePrompt + (customInstructions.trim()
-      ? `\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
-      : `\n---\n${script}\n---`);
+    const fullPrompt = customInstructions.trim()
+      ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
+      : `${basePrompt}\n---\n${script}\n---`;
   
-    closeModal();
+    closeModal(); // MUST close input modal first!
     handleSideBySideAction(fullPrompt, 'summarize');
   };
 
