@@ -1,5 +1,3 @@
-
-
 // FIX: Changed React import to the default import style to resolve widespread JSX typing errors.
 import React from 'react';
 import type { Settings } from '../types';
@@ -294,25 +292,32 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
 
     let title = '', content: React.ReactNode = null, footer: React.ReactNode = null, widthClass = 'max-w-lg';
 
-    if (isProcessing && !modal.data) {
-        title = 'AI Processing';
-        content = <div className="flex flex-col items-center justify-center h-48 space-y-4"><SpinnerIcon className="w-10 h-10 text-cyan-400" /><p className="text-gray-400">Your AI assistant is working...</p></div>;
-    } else if (modal.type === 'error' || error) {
+    if (modal.type === 'error' || error) {
       title = 'Error';
       content = <div className="text-red-400 p-4 bg-red-900/20 rounded-md">{error || 'An unknown error occurred.'}</div>;
       footer = <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Close</button>;
     } else if (modal.type === 'generate') {
       title = 'Generate Script with AI';
       
-      const handleGenerateKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          handleGenerateScript(e.currentTarget.value);
-        }
-      };
-      
-      content = <textarea ref={generatePromptRef} id="ai-prompt-textarea" onKeyDown={handleGenerateKeyDown} placeholder="e.g., A 2-minute YouTube video intro about the benefits of hydration." className="w-full h-32 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"></textarea>;
-      footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => handleGenerateScript((document.getElementById('ai-prompt-textarea') as HTMLTextAreaElement).value)} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">Generate</button></>;
+      if (isProcessing) {
+        content = (
+          <div className="flex flex-col items-center justify-center h-48 space-y-4">
+            <SpinnerIcon className="w-10 h-10 text-cyan-400" />
+            <p className="text-gray-400">Your AI assistant is writing...</p>
+          </div>
+        );
+        footer = null;
+      } else {
+        const handleGenerateKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleGenerateScript(e.currentTarget.value);
+          }
+        };
+        
+        content = <textarea ref={generatePromptRef} id="ai-prompt-textarea" onKeyDown={handleGenerateKeyDown} placeholder="e.g., A 2-minute YouTube video intro about the benefits of hydration." className="w-full h-32 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"></textarea>;
+        footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => handleGenerateScript((document.getElementById('ai-prompt-textarea') as HTMLTextAreaElement).value)} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">Generate</button></>;
+      }
     } else if (['polish', 'coach', 'summarize'].includes(modal.type)) {
       widthClass = 'max-w-5xl';
       title = { polish: 'Polish Script', coach: 'Delivery Coach', summarize: 'Summarize Script' }[modal.type]!;
