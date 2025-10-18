@@ -1,4 +1,5 @@
-const CACHE_NAME = 'maistermind-teleprompter-pwa-v1';
+// A new version number to force the service worker to update and invalidate old caches.
+const CACHE_NAME = 'maistermind-teleprompter-pwa-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -6,48 +7,22 @@ const urlsToCache = [
   'https://cdn.tailwindcss.com'
 ];
 
+// On install, cache the core assets and immediately activate the new service worker.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('Opened cache and caching new assets');
         return cache.addAll(urlsToCache);
+      })
+      .then(() => {
+        // Force the waiting service worker to become the active service worker.
+        return self.skipWaiting();
       })
   );
 });
 
-self.addEventListener('fetch', event => {
-  // Skip non-GET requests and API calls.
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-
-  event.respondWith(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.match(event.request).then(response => {
-        // Fetch from the network.
-        const fetchPromise = fetch(event.request).then(networkResponse => {
-          // If we get a valid response, update the cache.
-          if (networkResponse && networkResponse.status === 200) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        }).catch(() => {
-          // The network failed, but we might have a cached response.
-          // This path is taken when the initial cache.match() fails, but fetch also fails.
-          // If response is not null here, it means we did find it in cache initially.
-          // If it is null, then both cache and network failed.
-        });
-
-        // Return the cached response if it exists, otherwise wait for the network.
-        return response || fetchPromise;
-      });
-    })
-  );
-});
-
-
+// On activation, clean up any old caches and take control of all pages.
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -55,10 +30,41 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // Tell the active service worker to take control of the page immediately.
+      return self.clients.claim();
     })
+  );
+});
+
+// On fetch, intercept requests and apply a network-first strategy.
+self.addEventListener('fetch', event => {
+  // We only want to cache GET requests.
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  event.respondWith(
+    // First, try to fetch the request from the network.
+    fetch(event.request)
+      .then(networkResponse => {
+        // If the network request is successful, cache the response and return it.
+        // We need to clone the response because it's a stream that can only be consumed once.
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME)
+          .then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        return networkResponse;
+      })
+      .catch(() => {
+        // If the network request fails (e.g., offline), try to get the response from the cache.
+        return caches.match(event.request);
+      })
   );
 });

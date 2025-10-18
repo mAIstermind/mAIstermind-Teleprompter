@@ -169,10 +169,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       generatePromptRef.current?.focus();
       return;
     }
-    if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) return;
+    if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) {
+      return;
+    }
     
-    closeModal();
     setScript('');
+    closeModal(); // Close modal BEFORE starting processing
     
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
     
@@ -214,23 +216,26 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     setModal({ type: 'summarize-input' });
   };
   
-  const executePolishScript = (customPrompt: string) => {
+  const executePolish = (customInstructions: string) => {
     const basePrompt = `Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.`;
-    const fullPrompt = `${basePrompt}${customPrompt.trim() ? `\n\nAdditional instructions: ${customPrompt.trim()}` : ''}\n---\n${script}\n---`;
+    const fullPrompt = `${basePrompt}${customInstructions.trim() ? `\n\nAdditional instructions: ${customInstructions}` : ''}\n---\n${script}\n---`;
+    
     closeModal();
     handleSideBySideAction(fullPrompt, 'polish');
   };
 
-  const executeCoachScript = (customPrompt: string) => {
+  const executeCoach = (customInstructions: string) => {
     const basePrompt = `Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).`;
-    const fullPrompt = `${basePrompt}${customPrompt.trim() ? `\n\nAdditional instructions: ${customPrompt.trim()}` : ''}\n---\n${script}\n---`;
+    const fullPrompt = `${basePrompt}${customInstructions.trim() ? `\n\nAdditional instructions: ${customInstructions}` : ''}\n---\n${script}\n---`;
+    
     closeModal();
     handleSideBySideAction(fullPrompt, 'coach');
   };
 
-  const executeSummarizeScript = (customPrompt: string) => {
+  const executeSummarize = (customInstructions: string) => {
     const basePrompt = `Summarize the following script into key talking points suitable for a social media post or video description.`;
-    const fullPrompt = `${basePrompt}${customPrompt.trim() ? `\n\nAdditional instructions: ${customPrompt.trim()}` : ''}\n---\n${script}\n---`;
+    const fullPrompt = `${basePrompt}${customInstructions.trim() ? `\n\nAdditional instructions: ${customInstructions}` : ''}\n---\n${script}\n---`;
+    
     closeModal();
     handleSideBySideAction(fullPrompt, 'summarize');
   };
@@ -366,7 +371,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
         if (e.key === 'Enter' && e.ctrlKey) {
           e.preventDefault();
           if (polishPromptRef.current) {
-            executePolishScript(polishPromptRef.current.value);
+            executePolish(polishPromptRef.current.value);
           }
         }
       };
@@ -386,7 +391,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       footer = (
         <>
           <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
-          <button onClick={() => { if (polishPromptRef.current) { executePolishScript(polishPromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
+          <button onClick={() => { if (polishPromptRef.current) { executePolish(polishPromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
             Polish Script
           </button>
         </>
@@ -397,7 +402,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
         if (e.key === 'Enter' && e.ctrlKey) {
           e.preventDefault();
           if (coachPromptRef.current) {
-            executeCoachScript(coachPromptRef.current.value);
+            executeCoach(coachPromptRef.current.value);
           }
         }
       };
@@ -417,7 +422,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       footer = (
         <>
           <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
-          <button onClick={() => { if (coachPromptRef.current) { executeCoachScript(coachPromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
+          <button onClick={() => { if (coachPromptRef.current) { executeCoach(coachPromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
             Add Delivery Cues
           </button>
         </>
@@ -428,7 +433,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
         if (e.key === 'Enter' && e.ctrlKey) {
           e.preventDefault();
           if (summarizePromptRef.current) {
-            executeSummarizeScript(summarizePromptRef.current.value);
+            executeSummarize(summarizePromptRef.current.value);
           }
         }
       };
@@ -448,7 +453,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       footer = (
         <>
           <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
-          <button onClick={() => { if (summarizePromptRef.current) { executeSummarizeScript(summarizePromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
+          <button onClick={() => { if (summarizePromptRef.current) { executeSummarize(summarizePromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
             Summarize
           </button>
         </>
