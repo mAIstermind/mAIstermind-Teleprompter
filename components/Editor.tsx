@@ -127,25 +127,22 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     handleSideBySideAction(fullPrompt, 'summarize');
   };
 
+  // FIX: Refactored to correctly handle streaming JSON. It now accumulates chunks and parses the complete response once, fixing a logical bug and potential parsing errors.
   const executeToneAnalysis = () => {
     const prompt = `Analyze the tone of the following script. Break it down by section or paragraph, identifying the primary tone (e.g., "inspirational," "humorous," "formal," "urgent"). Return the analysis as a JSON array where each object has "section" (a short quote from the text) and "tone" keys. Script:\n---\n${script}\n---`;
     setModalState({ type: 'tone', step: 'processing' });
-
+    let fullText = '';
+    
     handleApiCallWrapper(
       prompt,
       { responseMimeType: 'application/json', responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { section: { type: Type.STRING }, tone: { type: Type.STRING } } } } },
       (textChunk) => { 
-        try {
-          const parsed = JSON.parse(textChunk);
-          setModalState({ type: 'tone', step: 'result', data: parsed });
-        } catch (e) {
-          // Streaming JSON can be tricky, wait for the full response in onComplete
-        }
+        fullText += textChunk;
       },
-      async () => {
+      () => { // onComplete
         try {
-          const fullResponse = await callApi(prompt, { responseMimeType: 'application/json', responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { section: { type: Type.STRING }, tone: { type: Type.STRING } } } } });
-          setModalState({ type: 'tone', step: 'result', data: JSON.parse(fullResponse) });
+          const parsed = JSON.parse(fullText);
+          setModalState({ type: 'tone', step: 'result', data: parsed });
         } catch (err: any) {
           setModalState({ type: 'error', data: `Failed to parse tone analysis: ${err.message}` });
         }
@@ -333,8 +330,25 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
             <div><label>Scroll Speed: {settings.scrollSpeed}</label><input type="range" min="1" max="10" value={settings.scrollSpeed} onChange={e => setSettings(s => ({...s, scrollSpeed: +e.target.value}))} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" /></div>
             <div><label>Font Size (vmin): {settings.fontSize}</label><input type="range" min="2" max="12" step="0.5" value={settings.fontSize} onChange={e => setSettings(s => ({...s, fontSize: +e.target.value}))} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" /></div>
             <div><label>Line Height: {settings.lineHeight}</label><input type="range" min="1" max="2.5" step="0.1" value={settings.lineHeight} onChange={e => setSettings(s => ({...s, lineHeight: +e.target.value}))} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" /></div>
-            <div><label>Font Family</label><select value={settings.fontFamily} onChange={e => setSettings(s => ({...s, fontFamily: e.target.value}))} className="w-full bg-gray-700 rounded-md p-1.5"><option>Arial</option><option>Times New Roman</option><option>Courier New</option><option>Georgia</option><option>Verdana</option></select></div>
+            <div>
+              <label>Font Family</label>
+              <select value={settings.fontFamily} onChange={e => setSettings(s => ({...s, fontFamily: e.target.value}))} className="w-full bg-gray-700 rounded-md p-1.5">
+                {fonts.map(font => (
+                  <option key={font} value={font} style={{ fontFamily: font, fontSize: '1rem' }}>
+                    {font}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div><label>Text Align</label><select value={settings.textAlign} onChange={e => setSettings(s => ({...s, textAlign: e.target.value as any}))} className="w-full bg-gray-700 rounded-md p-1.5"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="fontColor">Font Color</label>
+              <input type="color" id="fontColor" value={settings.fontColor} onChange={e => setSettings(s => ({...s, fontColor: e.target.value}))} className="w-10 h-8 p-1 bg-gray-700 border border-gray-600 rounded-md cursor-pointer" />
+            </div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="bgColor">Text BG Color</label>
+              <input type="color" id="bgColor" value={settings.textBackgroundColor === 'transparent' ? '#000000' : settings.textBackgroundColor} onChange={e => setSettings(s => ({...s, textBackgroundColor: e.target.value}))} className="w-10 h-8 p-1 bg-gray-700 border border-gray-600 rounded-md cursor-pointer" />
+            </div>
             <div className="flex items-center gap-2"><input type="checkbox" id="mirror" checked={settings.isMirrored} onChange={e => setSettings(s => ({...s, isMirrored: e.target.checked}))} /><label htmlFor="mirror">Mirror Text</label></div>
             <div className="flex items-center gap-2"><input type="checkbox" id="guides" checked={settings.showGuides} onChange={e => setSettings(s => ({...s, showGuides: e.target.checked}))} /><label htmlFor="guides">Show Video Guides</label></div>
             <div className="flex items-center gap-2"><input type="checkbox" id="camera" checked={settings.showCamera} onChange={e => setSettings(s => ({...s, showCamera: e.target.checked}))} /><label htmlFor="camera">Show Camera Feed</label></div>
