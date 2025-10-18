@@ -63,6 +63,9 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const aiMenuRef = React.useRef<HTMLDivElement>(null);
   const generatePromptRef = React.useRef<HTMLTextAreaElement>(null);
+  const polishPromptRef = React.useRef<HTMLTextAreaElement>(null);
+  const coachPromptRef = React.useRef<HTMLTextAreaElement>(null);
+  const summarizePromptRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
     const words = script.trim().split(/\s+/).filter(Boolean).length;
@@ -85,12 +88,6 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  React.useEffect(() => {
-    if (modal.type === 'generate' && generatePromptRef.current) {
-      generatePromptRef.current.focus();
-    }
-  }, [modal.type]);
 
   const handleSelectionChange = () => {
     const textarea = textareaRef.current;
@@ -169,11 +166,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
 
   const handleGenerateScript = async (promptText: string) => {
     if (!promptText.trim()) {
-        generatePromptRef.current?.focus();
-        return;
+      generatePromptRef.current?.focus();
+      return;
     }
     if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) return;
     
+    closeModal();
     setScript('');
     
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
@@ -181,8 +179,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     handleApiCallWrapper(
       fullPrompt, 
       {}, 
-      (chunk) => setScript(prev => prev + chunk),
-      closeModal // Pass closeModal as the onComplete callback
+      (chunk) => setScript(prev => prev + chunk)
     );
   };
 
@@ -193,11 +190,56 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     });
   };
 
-  const handlePolishScript = () => handleSideBySideAction(`Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.:\n---\n${script}\n---`, 'polish');
-  const handleCoachScript = () => handleSideBySideAction(`Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).:\n---\n${script}\n---`, 'coach');
-  const handleSummarizeScript = () => handleSideBySideAction(`Summarize the following script into key talking points suitable for a social media post or video description.:\n---\n${script}\n---`, 'summarize');
+  const handlePolishScript = () => {
+    if (!script.trim()) {
+      alert("Please enter some script content first.");
+      return;
+    }
+    setModal({ type: 'polish-input' });
+  };
+  
+  const handleCoachScript = () => {
+    if (!script.trim()) {
+      alert("Please enter some script content first.");
+      return;
+    }
+    setModal({ type: 'coach-input' });
+  };
+
+  const handleSummarizeScript = () => {
+    if (!script.trim()) {
+      alert("Please enter some script content first.");
+      return;
+    }
+    setModal({ type: 'summarize-input' });
+  };
+  
+  const executePolishScript = (customPrompt: string) => {
+    const basePrompt = `Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.`;
+    const fullPrompt = `${basePrompt}${customPrompt.trim() ? `\n\nAdditional instructions: ${customPrompt.trim()}` : ''}\n---\n${script}\n---`;
+    closeModal();
+    handleSideBySideAction(fullPrompt, 'polish');
+  };
+
+  const executeCoachScript = (customPrompt: string) => {
+    const basePrompt = `Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).`;
+    const fullPrompt = `${basePrompt}${customPrompt.trim() ? `\n\nAdditional instructions: ${customPrompt.trim()}` : ''}\n---\n${script}\n---`;
+    closeModal();
+    handleSideBySideAction(fullPrompt, 'coach');
+  };
+
+  const executeSummarizeScript = (customPrompt: string) => {
+    const basePrompt = `Summarize the following script into key talking points suitable for a social media post or video description.`;
+    const fullPrompt = `${basePrompt}${customPrompt.trim() ? `\n\nAdditional instructions: ${customPrompt.trim()}` : ''}\n---\n${script}\n---`;
+    closeModal();
+    handleSideBySideAction(fullPrompt, 'summarize');
+  };
 
   const handleToneAnalysis = async () => {
+    if (!script.trim()) {
+      alert("Please enter some script content first.");
+      return;
+    }
     setModal({ type: 'tone' });
     const prompt = `Analyze the tone of the following script. Break the script into logical sections and identify the primary tone for each (e.g., "Informative," "Inspirational," "Humorous," "Urgent"). Provide the output as a JSON array of objects, where each object has a "section" (the text) and a "tone" (the analysis). Script:\n---\n${script}\n---`;
     const config = { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { section: { type: Type.STRING }, tone: { type: Type.STRING } } } } };
@@ -315,9 +357,102 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
           }
         };
         
-        content = <textarea ref={generatePromptRef} id="ai-prompt-textarea" onKeyDown={handleGenerateKeyDown} placeholder="e.g., A 2-minute YouTube video intro about the benefits of hydration." className="w-full h-32 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"></textarea>;
-        footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => handleGenerateScript((document.getElementById('ai-prompt-textarea') as HTMLTextAreaElement).value)} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">Generate</button></>;
+        content = <textarea ref={generatePromptRef} onKeyDown={handleGenerateKeyDown} placeholder="e.g., A 2-minute YouTube video intro about the benefits of hydration." className="w-full h-32 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none" autoFocus></textarea>;
+        footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => handleGenerateScript(generatePromptRef.current?.value || '')} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">Generate</button></>;
       }
+    } else if (modal.type === 'polish-input') {
+      title = 'Polish Script';
+      const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          if (polishPromptRef.current) {
+            executePolishScript(polishPromptRef.current.value);
+          }
+        }
+      };
+      content = (
+        <div>
+          <p className="text-gray-300 mb-3">The AI will polish your script for clarity, conciseness, and impact.</p>
+          <textarea
+            ref={polishPromptRef}
+            onKeyDown={handleKeyDown}
+            placeholder="Optional: Add any specific instructions (e.g., 'Make it more formal' or 'Keep it conversational')"
+            className="w-full h-24 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+            autoFocus
+          />
+          <p className="text-xs text-gray-500 mt-2">Press Ctrl+Enter to submit, or leave blank for default polishing.</p>
+        </div>
+      );
+      footer = (
+        <>
+          <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
+          <button onClick={() => { if (polishPromptRef.current) { executePolishScript(polishPromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
+            Polish Script
+          </button>
+        </>
+      );
+    } else if (modal.type === 'coach-input') {
+      title = 'Delivery Coach';
+      const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          if (coachPromptRef.current) {
+            executeCoachScript(coachPromptRef.current.value);
+          }
+        }
+      };
+      content = (
+        <div>
+          <p className="text-gray-300 mb-3">The AI will add delivery cues to your script.</p>
+          <textarea
+            ref={coachPromptRef}
+            onKeyDown={handleKeyDown}
+            placeholder="Optional: Add specific instructions (e.g., 'Focus on emotional emphasis' or 'Add more pauses')"
+            className="w-full h-24 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+            autoFocus
+          />
+          <p className="text-xs text-gray-500 mt-2">Press Ctrl+Enter to submit, or leave blank for default coaching.</p>
+        </div>
+      );
+      footer = (
+        <>
+          <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
+          <button onClick={() => { if (coachPromptRef.current) { executeCoachScript(coachPromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
+            Add Delivery Cues
+          </button>
+        </>
+      );
+    } else if (modal.type === 'summarize-input') {
+      title = 'Summarize Script';
+      const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          if (summarizePromptRef.current) {
+            executeSummarizeScript(summarizePromptRef.current.value);
+          }
+        }
+      };
+      content = (
+        <div>
+          <p className="text-gray-300 mb-3">The AI will create a summary of your script.</p>
+          <textarea
+            ref={summarizePromptRef}
+            onKeyDown={handleKeyDown}
+            placeholder="Optional: Add specific instructions (e.g., 'Make it 3 bullet points' or 'Focus on key benefits')"
+            className="w-full h-24 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+            autoFocus
+          />
+          <p className="text-xs text-gray-500 mt-2">Press Ctrl+Enter to submit, or leave blank for default summary.</p>
+        </div>
+      );
+      footer = (
+        <>
+          <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
+          <button onClick={() => { if (summarizePromptRef.current) { executeSummarizeScript(summarizePromptRef.current.value); } }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">
+            Summarize
+          </button>
+        </>
+      );
     } else if (['polish', 'coach', 'summarize'].includes(modal.type)) {
       widthClass = 'max-w-5xl';
       title = { polish: 'Polish Script', coach: 'Delivery Coach', summarize: 'Summarize Script' }[modal.type]!;
