@@ -1,3 +1,4 @@
+
 // FIX: Changed React import to the default import style to resolve widespread JSX typing errors.
 import React from 'react';
 import type { Settings } from '../types';
@@ -67,10 +68,13 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
 
   const handleGenerateScript = async (promptText: string) => {
-    if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) {
-      return;
+    if (script.trim()) {
+        const confirmed = window.confirm("This will replace your current script. Are you sure?");
+        if (!confirmed) {
+            return; // Exit without closing modal if user cancels
+        }
     }
-    // FIX: Modal is closed by the button's onClick handler before this is called.
+    closeModal(); // Close modal only after confirmation
     setScript('');
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
     handleApiCallWrapper(
@@ -94,7 +98,6 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
   
   const executePolish = (customInstructions: string) => {
-    // FIX: Modal is closed by the button's onClick handler before this is called.
     const basePrompt = `Polish the following script for clarity, conciseness, and impact. Fix any grammatical errors or awkward phrasing.`;
     const fullPrompt = customInstructions.trim()
       ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
@@ -103,7 +106,6 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
 
   const executeCoach = (customInstructions: string) => {
-    // FIX: Modal is closed by the button's onClick handler before this is called.
     const basePrompt = `Add delivery cues to the following script. Include notes on pacing, tone, emphasis, and suggested pauses (e.g., [pause], [emphasize], [slower]).`;
     const fullPrompt = customInstructions.trim()
       ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
@@ -112,7 +114,6 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
 
   const executeSummarize = (customInstructions: string) => {
-    // FIX: Modal is closed by the button's onClick handler before this is called.
     const basePrompt = `Summarize the following script into key talking points suitable for a social media post or video description.`;
     const fullPrompt = customInstructions.trim()
       ? `${basePrompt}\n\nAdditional instructions: ${customInstructions}\n\n---\n${script}\n---`
@@ -182,7 +183,6 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
                 className="w-full bg-gray-700 rounded-md p-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 onKeyDown={(e) => { 
                   if (e.key === 'Enter' && generatePromptRef.current?.value.trim()) {
-                    closeModal();
                     handleGenerateScript(generatePromptRef.current.value);
                   } 
                 }}
@@ -194,7 +194,6 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
                 <button
                     onClick={() => {
                       if (generatePromptRef.current && generatePromptRef.current.value.trim()) {
-                        closeModal(); // FIX: Close modal immediately before calling the handler
                         handleGenerateScript(generatePromptRef.current.value);
                       } else {
                         generatePromptRef.current?.focus();
@@ -237,12 +236,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
               ref={customInstructionsRef}
               placeholder={`Optional instructions. ${placeholderText}`}
               className="w-full h-24 bg-gray-700 rounded-md p-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeModal(); executor(customInstructionsRef.current?.value || ''); } }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); executor(customInstructionsRef.current?.value || ''); } }}
             />
           );
           footer = <>
             <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button>
-            <button onClick={() => { closeModal(); executor(customInstructionsRef.current?.value || ''); }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">{actionText}</button>
+            <button onClick={() => { executor(customInstructionsRef.current?.value || ''); }} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">{actionText}</button>
           </>;
         }
         break;
