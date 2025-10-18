@@ -1,4 +1,5 @@
 
+
 // FIX: Changed React import to the default import style to resolve widespread JSX typing errors.
 import React from 'react';
 import type { Settings } from '../types';
@@ -63,6 +64,7 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const aiMenuRef = React.useRef<HTMLDivElement>(null);
+  const generatePromptRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
     const words = script.trim().split(/\s+/).filter(Boolean).length;
@@ -85,6 +87,12 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  React.useEffect(() => {
+    if (modal.type === 'generate' && generatePromptRef.current) {
+      generatePromptRef.current.focus();
+    }
+  }, [modal.type]);
 
   const handleSelectionChange = () => {
     const textarea = textareaRef.current;
@@ -162,11 +170,22 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
   };
 
   const handleGenerateScript = async (promptText: string) => {
+    if (!promptText.trim()) {
+        generatePromptRef.current?.focus();
+        return;
+    }
     if (script.trim() && !window.confirm("This will replace your current script. Are you sure?")) return;
+    
     setScript('');
-    closeModal();
+    
     const fullPrompt = `You are a professional scriptwriter. Write a script based on the following topic. The script should be engaging, clear, and well-structured. Topic: "${promptText}"`;
-    handleApiCallWrapper(fullPrompt, {}, (chunk) => setScript(prev => prev + chunk));
+    
+    handleApiCallWrapper(
+      fullPrompt, 
+      {}, 
+      (chunk) => setScript(prev => prev + chunk),
+      closeModal // Pass closeModal as the onComplete callback
+    );
   };
 
   const handleSideBySideAction = async (prompt: string, modalType: string) => {
@@ -284,7 +303,15 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
       footer = <button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Close</button>;
     } else if (modal.type === 'generate') {
       title = 'Generate Script with AI';
-      content = <textarea id="ai-prompt-textarea" placeholder="e.g., A 2-minute YouTube video intro about the benefits of hydration." className="w-full h-32 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"></textarea>;
+      
+      const handleGenerateKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleGenerateScript(e.currentTarget.value);
+        }
+      };
+      
+      content = <textarea ref={generatePromptRef} id="ai-prompt-textarea" onKeyDown={handleGenerateKeyDown} placeholder="e.g., A 2-minute YouTube video intro about the benefits of hydration." className="w-full h-32 bg-gray-900 text-gray-200 p-3 rounded-md focus:ring-1 focus:ring-cyan-500 focus:outline-none"></textarea>;
       footer = <><button onClick={closeModal} className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-md transition-colors">Cancel</button><button onClick={() => handleGenerateScript((document.getElementById('ai-prompt-textarea') as HTMLTextAreaElement).value)} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-md transition-colors font-semibold">Generate</button></>;
     } else if (['polish', 'coach', 'summarize'].includes(modal.type)) {
       widthClass = 'max-w-5xl';
