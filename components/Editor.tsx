@@ -55,17 +55,22 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
 
   const closeModal = () => setModalState({ type: null });
 
-  const handleApiCallWrapper = async (prompt: string, config: any, onChunk: (chunk: string) => void, onComplete?: () => void) => {
-    try {
-      await callApi(prompt, config, onChunk);
-    } catch (err: any) {
-      setModalState({ type: 'error', data: err.message });
-    } finally {
-      if (onComplete) {
-        onComplete();
-      }
+ const handleApiCallWrapper = async (prompt: string, config: any, onChunk: (chunk: string) => void, onComplete?: () => void) => {
+  try {
+    console.log('[API] Calling API...');
+    await callApi(prompt, config, onChunk);
+    console.log('[API] Success!');
+    
+    if (onComplete) {
+      onComplete();  // Only runs if NO error
     }
-  };
+  } catch (err: any) {
+    console.error('[API] Error:', err);
+    setModalState({ type: 'error', data: `API Error: ${err.message || 'Unknown error'}` });
+    // Error modal stays open - you'll see the actual error!
+  }
+};
+
 
  const handleGenerateScript = async (promptText: string) => {
   if (script.trim()) {
@@ -285,8 +290,13 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
     return (
       <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4" onClick={closeModal}>
         <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full flex flex-col text-white shadow-2xl" onClick={e => e.stopPropagation()}>
-          <header className="flex justify-between items-center pb-2 mb-4 border-b border-gray-700"><h2 className="text-xl font-bold">{title}</h2><button onClick={closeModal}><CloseIcon className="w-6 h-6"/></button></header>
-          <div className="flex-grow">{content}</div>
+         <header className="flex flex-wrap sm:flex-nowrap items-center justify-between pb-2 mb-4 border-b border-gray-700 overflow-x-auto scrollbar-hide">
+  <h2 className="text-xl font-bold whitespace-nowrap">{title}</h2>
+  <button onClick={closeModal} className="flex-shrink-0 ml-2">
+    <CloseIcon className="w-6 h-6" />
+  </button>
+</header>
+  <div className="flex-grow">{content}</div>
           {footer && <footer className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-700">{footer}</footer>}
         </div>
       </div>
@@ -310,9 +320,13 @@ const Editor: React.FC<EditorProps> = ({ script, setScript, settings, setSetting
         <button onClick={handleFileExport} className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-2"><DownloadIcon className="w-4 h-4" /> Export</button>
         <button onClick={() => setModalState({ type: 'generate', step: 'input' })} className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-2"><SparkleIcon className="w-4 h-4" /> Ask AI</button>
         <div className="relative group">
-          <button className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-2 w-full"><PencilIcon className="w-4 h-4" /> AI Tools</button>
-          <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-10 w-48 opacity-0 group-hover:opacity-100 transition-opacity invisible group-hover:visible">
-              <a onClick={() => setModalState({ type: 'polish', step: 'input' })} className="block px-4 py-2 text-sm hover:bg-gray-700 cursor-pointer">Polish Script</a>
+         <button className="text-xs sm:text-sm md:text-base bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-md transition-colors flex items-center gap-2 w-full">
+  <PencilIcon className="w-4 h-4" /> AI Tools
+</button>
+ <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-10 w-auto max-w-[90vw] opacity-0 group-hover:opacity-100 transition-opacity invisible group-hover:visible overflow-x-hidden">
+  ...
+</div>
+             <a onClick={() => setModalState({ type: 'polish', step: 'input' })} className="block px-4 py-2 text-sm hover:bg-gray-700 cursor-pointer">Polish Script</a>
               <a onClick={() => setModalState({ type: 'coach', step: 'input' })} className="block px-4 py-2 text-sm hover:bg-gray-700 cursor-pointer">Delivery Coach</a>
               <a onClick={() => setModalState({ type: 'summarize', step: 'input' })} className="block px-4 py-2 text-sm hover:bg-gray-700 cursor-pointer">Summarize</a>
               <a onClick={executeToneAnalysis} className="block px-4 py-2 text-sm hover:bg-gray-700 cursor-pointer">Tone Analysis</a>
