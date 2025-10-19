@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "vite",
     "dev:server": "node server.js",
-    "build": "vite build && cp service-worker.js dist/",
+    "build": "vite build && cp service-worker.js dist/ && cp public/manifest.json dist/",
     "preview": "vite preview",
     "start": "node server.js"
   },
